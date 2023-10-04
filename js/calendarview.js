@@ -1336,6 +1336,7 @@ Calendar.prototype = {
   {
     if (this.isPopup){
       Event.stopObserving(document, 'mousedown', Calendar._checkCalendar);        
+      Event.stopObserving(document, 'touchstart', Calendar._checkCalendar);
     }
     this.container.hide();
   },

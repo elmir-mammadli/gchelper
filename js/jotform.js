@@ -4184,25 +4184,25 @@ var JotForm = {
         if (JotForm.enterprise !== 'undefined' && JotForm.enterprise) {
             this.APIUrl = 'https://' + JotForm.enterprise + '/API';
             return;
-          }
-        
-          var isEUDomain = /(?:eu\.jotform)|(jotformeu\.com)/.test(window.location.host);
-          var isHipaaDomain = /(?:hipaa\.jotform)/.test(window.location.host);
-          switch (true) {
+        }
+
+        var isEUDomain = /(?:eu\.jotform)|(jotformeu\.com)/.test(window.location.host);
+        var isHipaaDomain = /(?:hipaa\.jotform)/.test(window.location.host);
+        switch (true) {
             case isEUDomain:
-              this.APIUrl = 'https://eu-api.jotform.com';
-              break;
+                this.APIUrl = 'https://eu-api.jotform.com';
+                break;
             case isHipaaDomain:
-              this.APIUrl = 'https://hipaa-api.jotform.com';
-              break;
+                this.APIUrl = 'https://hipaa-api.jotform.com';
+                break;
             case /form.jotform/.test(window.location.host):
             case /fb.jotform/.test(window.location.host):
             case /form.myjotform/.test(window.location.host):
-              this.APIUrl = 'https://api.jotform.com';
-              break;
+                this.APIUrl = 'https://api.jotform.com';
+                break;
             case Boolean(window.JotFormAPIEndpoint):
-              this.APIUrl = window.JotFormAPIEndpoint;
-              break;
+                this.APIUrl = window.JotFormAPIEndpoint;
+                break;
             case window.parent !== window:
                 var form = $$('.jotform-form')[0];
                 var formAction = form.readAttribute('action');
@@ -4217,10 +4217,13 @@ var JotForm = {
                         this.APIUrl = 'https://api.jotform.com';
                         break;
                 }
-            break;
+                break;
+            case JotForm.isFullSource === true:
+                this.APIUrl = this.url.replace(/\/$/, '') + '/API';
+                break;
             default:
-              this.APIUrl = '/API';
-          }
+                this.APIUrl = '/API';
+        }
     },
 
     /**
@@ -4333,6 +4336,15 @@ var JotForm = {
      */
     prePopulations: function (fields, isPrefill) {
         var _data = fields || document.get;
+
+        /**
+         * Replace unicode spaces with regular spaces
+         * Full list: http://jkorpela.fi/chars/spaces.html
+         */
+        var replaceUnicodeSpaces = function (str) {
+            return str.replace(/[\u00A0\u180E\u2000-\u200B\u202F\u205F\u3000\uFEFF]/, ' ');
+        }
+
         $H(_data).each(function (pair) {
             if (typeof pair.value === 'undefined') {
                 return;
@@ -4559,13 +4571,19 @@ var JotForm = {
                         allTranslations.push(input.value.replace(/\{\+\}/g,'{plusSign}').replace(/\+/g, ' ').replace(/\{plusSign\}/g,'+')); // There is no translation so just compare actual values
                     }
 
+                    var valueSplittedByComma = value.replace(/([^\\]),/g, '$1\u000B').split('\u000B');
                     allTranslations.each(function(inputValue) {
                         // if input value contains comma, escape it
                         if(inputValue.indexOf(',') && !(value.includes('<br>'))) {
                             inputValue = inputValue.replace(/,/g, "\\,");
                         }
 
-                        if (value == inputValue || $A(value.replace(/([^\\]),/g, '$1\u000B').split('\u000B')).include(inputValue) || $A(value.split('<br>')).include(inputValue)) {
+                        if (
+                            value == inputValue ||
+                            $A(valueSplittedByComma).include(inputValue) ||
+                            $A(value.split('<br>')).include(inputValue) ||
+                            valueSplittedByComma.includes(replaceUnicodeSpaces(inputValue)) // BUGFIX: #5135762, try one more time with unicode spaces replaced
+                        ) {
                             if (!input.checked) {
                                 if(input.disabled) {
                                     // Ticket ID: 1479721
@@ -4599,7 +4617,7 @@ var JotForm = {
         });
 
         setTimeout(function(){
-            if(!window.location.pathname.match(/^\/draft\//) && !JotForm.isEditMode()){
+            if(!window.location.pathname.match(/^\/draft\//)){
                 JotForm.runAllConditions();
             }
         }, 1500);
@@ -8321,7 +8339,7 @@ var JotForm = {
                             }
                             i += endSpecial - i;
                             if (specOp === 'dateString') {
-                                var millis = args[0] * 24 * 60 * 60 * 1000 + 6000000;
+                                var millis = args[0] * 24 * 60 * 60 * 1000;
                                 var date = new Date(millis);
 
                                 var getStringDate = function(date) {
@@ -13900,7 +13918,8 @@ var JotForm = {
             var inputElementID = firstLabel.getAttribute('for');
             if (inputElementID){
                 var inputElement = document.getElementById(inputElementID);
-                if (inputElement) {
+                const isIframeOnIOS = JotForm.browserIs.ios() && window !== window.top;
+                if (inputElement && !isIframeOnIOS) {
                     inputElement.focus();
                 }
             }
@@ -17072,6 +17091,12 @@ var JotForm = {
         //since we are using the said trick, this needs to be done
         element.up('form.jotform-form').observe('submit', function () {
             this.select('.custom-hint-group').each(function (elem) {
+                if (elem.type === 'textarea' && elem.hasAttribute('data-richtext')) {
+                    var editorInstance = nicEditors.findEditor(elem.id);
+                    if (elem.hasClassName('form-custom-hint')) {
+                        editorInstance.setContent('');
+                    }
+                }
                 elem.hideCustomPlaceHolder();
             });
         });
@@ -19777,6 +19802,11 @@ function getFieldsToEncrypt() {
 function setUnencryptedValueToForm(field) {
     // duplicate this field, its value is needed in original unencrypted format
     var isUniqueField = JotForm.uniqueField && JotForm.uniqueField == field.id.replace(/\w+_(\d+)(.+)?/, '$1');
+
+    if (typeof window.unencryptPaymentField !== 'undefined') {
+        unencryptPaymentField();
+    }
+
     var fieldId = field.id.replace(/[^_]+_(\d+)(.+)?/, '$1');
     if (JotForm.fieldsToPreserve.indexOf(fieldId) > -1 || isUniqueField) {
         var name = field.name.replace(/(\w+)(\[\w+\])?/, "$1_unencrypted$2");
@@ -19798,6 +19828,18 @@ function appendHiddenInput(name, value) {
     }
 }
 
+function unencryptPaymentField() {
+    // gateways that need these fields
+    var gateways = ["paypalcomplete"];
+    var getPaymentFields = $$('input[name="simple_fpc"]').length > 0 && gateways.indexOf($$('input[name="simple_fpc"]')[0].getAttribute('data-payment_type')) > -1;
+    if (getPaymentFields) {
+        var paymentId = $$('input[name="simple_fpc"]')[0].value;
+        // add unencrypted cc firstname and cc lastname fields as hidden field to form
+        JotForm.fieldsToPreserve.push(paymentId + '_cc_firstName');
+        JotForm.fieldsToPreserve.push(paymentId + '_cc_lastName');
+    }
+}
+
 function shouldSubmitFormAfterEncrypt() {
     // payment fields that will submit the form on their own
     var selfSubmitFields = [
@@ -19809,7 +19851,8 @@ function shouldSubmitFormAfterEncrypt() {
         "control_mollie",
         "control_stripeACHManual",
         "control_pagseguro",
-        "control_moneris"
+        "control_moneris",
+        "control_paypalcomplete"
     ];
 
     var hasSelfSubmitField = false;
