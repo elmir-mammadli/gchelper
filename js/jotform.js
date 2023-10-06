@@ -137,96 +137,7 @@ var JotForm = {
      * Texts used in the form
      * @var Object
      */
-    texts: {
-        confirmEmail: 'E-mail does not match',
-        pleaseWait: 'Please wait...',
-        validateEmail: 'You need to validate this e-mail',
-        confirmClearForm: 'Are you sure you want to clear the form',
-        lessThan: 'Your score should be less than or equal to',
-        incompleteFields: 'There are incomplete required fields. Please complete them.',
-        required: 'This field is required.',
-        requireOne: 'At least one field required.',
-        requireEveryRow: 'Every row is required.',
-        requireEveryCell: 'Every cell is required.',
-        email: 'Enter a valid e-mail address',
-        alphabetic: 'This field can only contain letters',
-        numeric: 'This field can only contain numeric values',
-        alphanumeric: 'This field can only contain letters and numbers.',
-        cyrillic: 'This field can only contain cyrillic characters',
-        url: 'This field can only contain a valid URL',
-        currency: 'This field can only contain currency values.',
-        fillMask: 'Field value must fill mask.',
-        uploadExtensions: 'You can only upload following files:',
-        noUploadExtensions: 'File has no extension file type (e.g. .txt, .png, .jpeg)',
-        uploadFilesize: 'File size cannot be bigger than:',
-        uploadFilesizemin: 'File size cannot be smaller than:',
-        gradingScoreError: 'Score total should only be less than or equal to',
-        inputCarretErrorA: 'Input should not be less than the minimum value:',
-        inputCarretErrorB: 'Input should not be greater than the maximum value:',
-        maxDigitsError: 'The maximum digits allowed is',
-        minCharactersError: 'The number of characters should not be less than the minimum value:',
-        freeEmailError: 'Free email accounts are not allowed',
-        minSelectionsError: 'The minimum required number of selections is ',
-        maxSelectionsError: 'The maximum number of selections allowed is ',
-        pastDatesDisallowed: 'Date must not be in the past.',
-        dateLimited: 'This date is unavailable.',
-        dateInvalid: 'This date is not valid. The date format is {format}',
-        dateInvalidSeparate: 'This date is not valid. Enter a valid {element}.',
-        ageVerificationError: 'You must be older than {minAge} years old to submit this form.',
-        multipleFileUploads_typeError: '{file} has invalid extension. Only {extensions} are allowed.',
-        multipleFileUploads_sizeError: '{file} is too large, maximum file size is {sizeLimit}.',
-        multipleFileUploads_minSizeError: '{file} is too small, minimum file size is {minSizeLimit}.',
-        multipleFileUploads_emptyError: '{file} is empty, please select files again without it.',
-        multipleFileUploads_uploadFailed: 'File upload failed, please remove it and upload the file again.',
-        multipleFileUploads_onLeave: 'The files are being uploaded, if you leave now the upload will be cancelled.',
-        multipleFileUploads_fileLimitError: 'Only {fileLimit} file uploads allowed.',
-        dragAndDropFilesHere_infoMessage: "Drag and drop files here",
-        chooseAFile_infoMessage: "Choose a file",
-        maxFileSize_infoMessage: "Max. file size",
-        generalError: 'There are errors on the form. Please fix them before continuing.',
-        generalPageError: 'There are errors on this page. Please fix them before continuing.',
-        wordLimitError: 'Too many words. The limit is',
-        wordMinLimitError: 'Too few words.  The minimum is',
-        characterLimitError: 'Too many Characters.  The limit is',
-        characterMinLimitError: 'Too few characters. The minimum is',
-        ccInvalidNumber: 'Credit Card Number is invalid.',
-        ccInvalidCVC: 'CVC number is invalid.',
-        ccInvalidExpireDate: 'Expire date is invalid.',
-        ccInvalidExpireMonth: 'Expiration month is invalid.',
-        ccInvalidExpireYear: 'Expiration year is invalid.',
-        ccMissingDetails: 'Please fill up the credit card details.',
-        ccMissingProduct: 'Please select at least one product.',
-        ccMissingDonation: 'Please enter numeric values for donation amount.',
-        disallowDecimals: 'Please enter a whole number.',
-        restrictedDomain: 'This domain is not allowed',
-        ccDonationMinLimitError: 'Minimum amount is {minAmount} {currency}',
-        requiredLegend: 'All fields marked with * are required and must be filled.',
-        geoPermissionTitle: 'Permission Denied',
-        geoPermissionDesc: 'Check your browser\'s privacy settings.',
-        geoNotAvailableTitle: 'Position Unavailable',
-        geoNotAvailableDesc: 'Location provider not available. Please enter the address manually.',
-        geoTimeoutTitle: 'Timeout',
-        geoTimeoutDesc: 'Please check your internet connection and try again.',
-        appointmentSelected: 'You’ve selected {time} on {date}',
-        noSlotsAvailable: 'No slots available',
-        slotUnavailable: '{time} on {date} has been selected is unavailable. Please select another slot.',
-        multipleError: 'There are {count} errors on this page. Please correct them before moving on.',
-        oneError: 'There is {count} error on this page. Please correct it before moving on.',
-        doneMessage: 'Well done! All errors are fixed.',
-        doneButton: 'Done',
-        reviewSubmitText: 'Review and Submit', 
-        nextButtonText: 'Next', 
-        prevButtonText: 'Previous',
-        seeErrorsButton: 'See Errors',
-        notEnoughStock: 'Not enough stock for the current selection',
-        notEnoughStock_remainedItems: 'Not enough stock for the current selection ({count} items left)',
-        soldOut: 'Sold Out',
-        justSoldOut: 'Just Sold Out',
-        selectionSoldOut: 'Selection Sold Out',
-        subProductItemsLeft: '({count} items left)',
-        startButtonText: 'START',
-        submitButtonText: 'Submit',
-    },
+    texts: {},
     paymentTexts: {
         couponApply: 'Apply',
         couponChange: 'Change',
@@ -776,6 +687,34 @@ var JotForm = {
                 }
 
                 var jotformForm = document.querySelector('.jotform-form');
+
+                // We are seeing form submissions with all answers, (except for default values) with empty values, and
+                // which are not being submitted via the submit button. We want to rule out forms being submitted via
+                // HTMLFormElement.submit(). To do this we're adding a log to the submit method
+                if (jotformForm) {
+                    jotformForm._submit = jotformForm.submit;
+
+                    jotformForm.submit = function () {
+                        var eventIDElement = document.querySelector('input[name="event_id"]');
+
+                        // Attempt to track to Kibana the submits directly called via javascript
+                        JotForm.errorCatcherLog({
+                            message: {
+                                event_id: eventIDElement && eventIDElement.value,
+                                formID: jotformForm.id,
+                                time: new Date()
+                            }
+                        }, 'EMPTY_SUBMISSION_TRACK_FE');
+
+                        // Because we can't trust Kibana to track the above log, add a query param to the form submit action
+                        if (jotformForm.action.indexOf('?') > -1) jotformForm.action += '&submit_source=direct';
+                        else jotformForm.action += '?submit_source=direct';
+
+                        // Call original method
+                        jotformForm._submit();
+                    }
+                }
+
                 if (jotformForm && jotformForm.reset && 
                 jotformForm.autocomplete && jotformForm.autocomplete == 'off') {
                         if ( window.navigator.userAgent.indexOf("MSIE ") !== -1 || window.navigator.userAgent.indexOf('Trident/') !== -1 ) {
@@ -10562,6 +10501,10 @@ var JotForm = {
         var flatShipping = 0;
         var products = 0;
         var formProductItem = null;
+        var firstPaymentVal = 0;
+        var recurringVal = 0;
+        var firstPaymentDiscount;
+        var recurPaymentDiscount;
 
         var pricingInformations = [];     // This variable holds each item informations
         var noCostItems = [];
@@ -10590,6 +10533,12 @@ var JotForm = {
                     }
                 }
                 // return;
+            } else if (pair.value.recurring && pair.value.firstPaymentVal && pair.value.customFirstPaymentPrice === '1') {
+                if ($(pair.key) && $(pair.key).checked && $(pair.key + '_custom_first_payment_price') && JotForm.discounts && JotForm.discounts[parsedPair[2]]) {
+                    var customDiscount = JotForm.discounts[parsedPair[2]].split('-');
+                    rate = customDiscount[0];
+                    type = customDiscount[1];
+                }
             }
 
             if ($(pair.value.quantityField)) {
@@ -10739,30 +10688,29 @@ var JotForm = {
                     if (discount[2] === "all" || discount[2] === "product") {
                         // calculate discount to recurring charge
                         if (isSetupFee) {
-                            recur = recur - ( ( discount[1] === 'fixed' ) ? discount[0] : roundAmount(recur * ( discount[0] / 100 ) ));
+                            var reduced = ( ( discount[1] === 'fixed' ) ? discount[0] : roundAmount(recur * ( discount[0] / 100 ) ));
+                            recurPaymentDiscount = reduced;
+                            recur = recur - reduced;
                             recur = recur < 0 ? 0 : roundAmount(recur);
+                        } else {
+                            recurPaymentDiscount = ( ( discount[1] === 'fixed' ) ? discount[0] : roundAmount(price * ( discount[0] / 100 ) ));
                         }
                         // calculate recurring price
-                        price = price - ( ( discount[1] === 'fixed' ) ? discount[0] : roundAmount(price * ( discount[0] / 100 ) ));
+                        var reduced = ( ( discount[1] === 'fixed' ) ? discount[0] : roundAmount(price * ( discount[0] / 100 ) ));
+                        if (pair.value.firstPaymentVal) {
+                            firstPaymentDiscount = reduced;
+                        }
+                        price = price - reduced;
                         price = price < 0 ? 0 : price;
 
-                        // calculate and show custom price discount
-                        // if custom: price === 0, and its' price equivalent to subTotal
-                        var totalContainer = document.querySelector('.form-payment-total');
-                        if (pair.value.price === 'custom' && rate && type && totalContainer) {
-                            var discountHTML = totalContainer.innerHTML.replace(/Total|Total:/, 'Discount:').replace('payment_total', 'discount_total').replace('<span>', '<span> - ');
-                            discountHTML = discountHTML.replace('id="total-text"', '');
-                            JotForm.discounts.container = new Element('span', { 'class': 'form-payment-discount' }).insert(discountHTML);
-                            totalContainer.parentNode.insertBefore(JotForm.discounts.container, totalContainer);
-
-                            var reduce = type === "fixed" ? rate : roundAmount(((rate / 100) * parseFloat(subTotal)));
-                            subTotal = subTotal > reduce ? roundAmount(subTotal - reduce) : 0;
-
-                            $('discount_total').update(parseFloat(reduce).formatMoney(decimal, dSeparator, tSeparator));
+                        if (pair.value.price === 'custom' && rate && type) {
+                            recurPaymentDiscount = type === "fixed" ? rate : roundAmount(((rate / 100) * parseFloat(subTotal)));
                         }
                     } else if (discount[2] === "first") {
                         if (isSetupFee) {
-                            price = price - ( ( discount[1] === 'fixed' ) ? discount[0] : roundAmount(price * ( discount[0] / 100 ) ));
+                            var reduced = ( ( discount[1] === 'fixed' ) ? discount[0] : roundAmount(price * ( discount[0] / 100 ) ));
+                            firstPaymentDiscount = reduced;
+                            price = price - reduced;
                             price = price < 0 ? 0 : price;
                         }
                     } else if (discount[2] === "stripe_native") {
@@ -10776,7 +10724,11 @@ var JotForm = {
                             price = roundAmount(price + Number(setupFee));
                         } else {
                             // calculate recurring price
-                            price = price - ( ( discount[1] === 'fixed' ) ? discount[0] : roundAmount(price * ( discount[0] / 100 ) ));
+                            var reduced = ( ( discount[1] === 'fixed' ) ? discount[0] : roundAmount(price * ( discount[0] / 100 ) ));
+                            if ($(pair.key) && $(pair.key).checked) {
+                                recurPaymentDiscount = reduced;
+                            }
+                            price = price - reduced;
                             price = price < 0 ? 0 : price;
                         }
                     }
@@ -10935,6 +10887,51 @@ var JotForm = {
                     $(pair.key + '_item_subtotal').update("0.00");
                 }
             }
+
+            // prepare subscription discount texts
+            if (window.paymentType === 'subscription' && window.FORM_MODE !== 'cardform') {
+                function getDiscountedVal(val, firstOrAll) {
+                    if (rate && type && discount[2]) {
+                        var reduce = type === 'fixed' ? rate : roundAmount(((rate / 100) * parseFloat(val)));
+                        if (
+                            discount[2] === 'first' && (
+                                (pair.value.price === 'custom' && pair.value.firstPaymentVal) ||
+                                (pair.value.customFirstPaymentPrice === '1' && pair.value.firstPaymentVal && pair.value.price && pair.value.recurring)
+                            )
+                        ) {
+                            firstPaymentDiscount = reduce;
+                        }
+                        if (firstOrAll === 'all') { recurPaymentDiscount = reduce; } else if (firstOrAll === 'first') { firstPaymentDiscount = reduce; }
+                        return parseFloat(val) > parseFloat(reduce) ? roundAmount(parseFloat(val) - parseFloat(reduce)) : 0;
+                    }
+                    return val;
+                }
+
+                if (pair.value.firstPaymentVal) {
+                    if ($(pair.key + '_custom_first_payment_price')) {
+                        firstPaymentVal = $(pair.key + '_custom_first_payment_price').getValue();
+                    } else {
+                        firstPaymentVal = (price || pair.value.firstPaymentVal);
+                    }
+                    firstPaymentVal = getDiscountedVal(firstPaymentVal, 'first');
+                }
+
+                recurringVal = pair.value.recurring ? recur : subTotal;
+                if (recurringVal && pair.value.price === 'custom' && rate && type && discount[2] === "all") {
+                    recurringVal = getDiscountedVal(recurringVal, 'all');
+                }
+
+                var recurPaymentContainer = document.querySelector('.form-payment-recurringpayments');
+                if (recurPaymentContainer && recurPaymentDiscount) {
+                    var discountHTML = recurPaymentContainer.innerHTML.replace(/Total|Total:/, 'Discount:').replace('payment_recurringpayments', 'discount_recurringpayments').replace('<span>', '<span> - ');
+                    discountHTML = discountHTML.replace('id="total-text"', '');
+                    JotForm.discounts.container = new Element('span', { 'class': 'form-payment-discount' }).insert(discountHTML);
+                    recurPaymentContainer.insertAdjacentElement('beforebegin', JotForm.discounts.container);
+                    // JotForm.discounts.container.down('.form-payment-price > span').prepend('-');
+                    $('discount_recurringpayments').update(parseFloat(recurPaymentDiscount).formatMoney(decimal, dSeparator, tSeparator));
+                }
+            }
+
           if($(pair.key) || JotForm.couponApplied){
               if($('coupon-button') && $(pair.key).checked === true && window.paymentType === 'subscription' && Array.from(document.querySelectorAll('.jfCard')).filter(function(el) {return el.dataset.type === 'control_stripe'}).length > 0){
                 selected_product_id = $(pair.key).value;
@@ -11087,6 +11084,9 @@ var JotForm = {
         if ($("payment_footer_total")) {
             $("payment_footer_total").update(parseFloat(total).formatMoney(decimal, dSeparator, tSeparator));
         }
+        if ($("payment_recurringpayments")) {
+            $("payment_recurringpayments").update(parseFloat(recurringVal).formatMoney(decimal, dSeparator, tSeparator));
+        }
 
         var count = 0;
         for(var propt in JotForm.discounts){
@@ -11111,6 +11111,10 @@ var JotForm = {
             }
         };
 
+        if (window.paymentType === 'subscription' && window.FORM_MODE !== 'cardform') {
+            if (firstPaymentDiscount) { JotForm.pricingInformations.general.firstPaymentDiscount = firstPaymentDiscount; }
+            if (recurPaymentDiscount) { JotForm.pricingInformations.general.recurPaymentDiscount = recurPaymentDiscount; }
+        }
 
         // Update paypal messaging
         if (JotForm.paypalCompleteJS && window.paypal && window.paypal.Messages) {
@@ -11197,6 +11201,14 @@ var JotForm = {
             if (pair.value.price == "custom") {
                 $(pair.key + '_custom_price').stopObserving('keyup'); // prevent stacking of listeners
                 $(pair.key + '_custom_price').observe('keyup', function () {
+                    JotForm.countTotal(prices);
+                });
+            }
+
+            // first payment with custom pricing
+            if ($(pair.key + '_custom_first_payment_price')) {
+                $(pair.key + '_custom_first_payment_price').stopObserving('keyup'); // prevent stacking of listeners
+                $(pair.key + '_custom_first_payment_price').observe('keyup', function () {
                     JotForm.countTotal(prices);
                 });
             }
@@ -12358,7 +12370,7 @@ var JotForm = {
     setButtonActions: function () {
         // window.checkForHiddenSection = false;
 
-        $$('.form-submit-button:not(.forReviewButton):not(.js-new-sacl-button)').each(function (b) {
+        $$('.form-submit-button:not(.forReviewButton):not(.js-new-sacl-button), .forSubmit:not(.forReviewButton):not(.js-new-sacl-button)').each(function (b) {
         b.oldText = b.innerHTML;
             b.enable(); // enable previously disabled button
             
@@ -15341,36 +15353,6 @@ var JotForm = {
             // Set on submit validation
             form.observe('submit', function (e) {
                 try {
-
-                    // Check for forEach support (ie 8)
-                    if (Array.prototype.forEach) {
-                        var formData = {};
-                        var elements = e.target && e.target.elements;
-
-                        // Get the form data as an object, this method is safer than querying the FormData API for compatibility
-                        Array.prototype.forEach.call(elements, function(element) {
-                            if (element.tagName !== 'BUTTON') formData[element.name] = {
-                                hasValue: !!element.value,
-                                required: !!element.required
-                            }
-                        });
-
-                        // Temp log while we try to find out why we're getting blank submissions
-                        var formIDElement = document.querySelector('input[name="formID"]');
-                        var eventIDElement = document.querySelector('input[name="event_id"]');
-                        var widgetElement = document.querySelectorAll('[data-type=control_widget]')
-                        JotForm.errorCatcherLog({
-                            message: {
-                                data: formData,
-                                validatedNewRequiredFieldIDs: JotForm.validatedRequiredFieldIDs,
-                                event_id: eventIDElement && eventIDElement.value,
-                                formID: formIDElement && formIDElement.value,
-                                time: new Date(),
-                                hasWidget: widgetElement && widgetElement.length
-                            }
-                        }, 'BLANK_SUBMISSION_TRACK_FE');
-                    }
-
                     if (JotForm.handleMinTotalOrderAmount() === true && window.paymentType === 'product') {
                       e.stop();
                     }
@@ -15388,6 +15370,12 @@ var JotForm = {
                     }
                     if ($('payment_discount_value') && JotForm.pricingInformations && JotForm.pricingInformations.general) {
                         $('payment_discount_value').value = JotForm.pricingInformations.general.discount;
+                    }
+                    if ($('firstPaymentDiscount') && JotForm.pricingInformations && JotForm.pricingInformations.general && JotForm.pricingInformations.general.firstPaymentDiscount) {
+                        $('firstPaymentDiscount').value = JotForm.pricingInformations.general.firstPaymentDiscount;
+                    }
+                    if ($('recurPaymentDiscount') && JotForm.pricingInformations && JotForm.pricingInformations.general && JotForm.pricingInformations.general.recurPaymentDiscount) {
+                        $('recurPaymentDiscount').value = JotForm.pricingInformations.general.recurPaymentDiscount;
                     }
                     if ($$('.form-submit-button') && $$('.form-submit-button').length > 0) {
                         //only submit form if a submit button is visible
@@ -15633,6 +15621,37 @@ var JotForm = {
                         }
                     });
                 }
+
+                // Check for forEach support (ie 8)
+                if (Array.prototype.forEach) {
+                    var formData = {};
+
+                    // Get the form data as an object, this method is safer than querying the FormData API for compatibility
+                    Array.prototype.forEach.call(form.elements || [], function (element) {
+                        if (element.tagName !== 'BUTTON') formData[element.name] = {
+                            hasValue: !!element.value,
+                            required: !!element.required
+                        }
+                    });
+
+                    // Temp log while we try to find out why we're getting blank submissions
+                    var formIDElement = document.querySelector('input[name="formID"]');
+                    var eventIDElement = document.querySelector('input[name="event_id"]');
+                    JotForm.errorCatcherLog({
+                        message: {
+                            data: formData,
+                            event_id: eventIDElement && eventIDElement.value,
+                            formID: formIDElement && formIDElement.value,
+                            time: new Date()
+                        }
+                    }, 'BLANK_SUBMISSION_TRACK_FE');
+
+                    // Because we can't trust Kibana to track the above log, add a query param to the form submit
+                    // action, so we can know where the submission event came from.
+                    if (form.action.indexOf('?') > -1) form.action += '&submit_source=form';
+                    else form.action += '?submit_source=form';
+                }
+
                 history.pushState({submitted: true}, null, null);
             });
 
@@ -19362,9 +19381,12 @@ function onProductImageClicked(pid, isEmbeddedwithIframe) {
     if (isEmbeddedwithIframe === true && typeof index !== 'undefined') {
         try {
             var productItems = document.querySelectorAll('.form-product-item');
-            var productItem = productItems[index];
-            var productItemHeightRelativeToViewPort = productItem.getBoundingClientRect().y;
-
+            var productItemHeightRelativeToViewPort;
+            Array.from(productItems).forEach(function(productItem) {
+                productItem.addEventListener('click', function(event) {
+                    productItemHeightRelativeToViewPort = productItem.getBoundingClientRect().y;
+                });
+            });
             // We need to set the location of a modal
             setTimeout(function() {
                 var modal = document.querySelector('#productImageOverlay .overlay-content');
@@ -19830,10 +19852,52 @@ function appendHiddenInput(name, value) {
 
 function unencryptPaymentField() {
     // gateways that need these fields
-    var gateways = ["paypalcomplete"];
+    var gateways = ["paypalcomplete", "square"];
     var getPaymentFields = $$('input[name="simple_fpc"]').length > 0 && gateways.indexOf($$('input[name="simple_fpc"]')[0].getAttribute('data-payment_type')) > -1;
+
+    var paymentExtras = [{
+        type: "phone",
+        pattern: /Phone|Contact/i
+    }, {
+        type: "email",
+        pattern: /email|mail|e-mail/i
+    }, {
+        type: "company",
+        pattern: /company|organization/i
+    }];
+
+    var eligibleFields = $$('.form-line[data-type*="email"],' +
+        '.form-line[data-type*="textbox"],' +
+        '.form-line[data-type*="phone"],' +
+        '.form-line[data-type*="dropdown"],' +
+        '.form-line[data-type*="radio"]');
+    
+    // arrange all fields by id
+    sortedFields = eligibleFields.sort(function (a, b) {
+        return Number(a.id.replace("id_", "")) - Number(b.id.replace("id_", ""));
+    });
+
     if (getPaymentFields) {
         var paymentId = $$('input[name="simple_fpc"]')[0].value;
+        var paymentFieldsToPreserve = {}; // holder for payment fields (max 3; see paymentExtras)
+
+        sortedFields.each(function (field) {
+            var fieldId = field.id.replace('id_', '');
+            var fieldType = field.getAttribute('data-type').replace('control_', '');
+
+            paymentExtras.each(function (extra) {
+                if (fieldType === extra.type && Object.keys(paymentFieldsToPreserve).length < 3) {
+                    var label = field.down('label').innerHTML.strip();
+                    if (extra.pattern.exec(label) && !paymentFieldsToPreserve[extra.type]) {
+                        paymentFieldsToPreserve[extra.type] = fieldId;
+                        if (JotForm.fieldsToPreserve.indexOf(fieldId) === -1) {
+                            JotForm.fieldsToPreserve.push(fieldId);
+                        }
+                    }
+                }
+            });
+        });
+
         // add unencrypted cc firstname and cc lastname fields as hidden field to form
         JotForm.fieldsToPreserve.push(paymentId + '_cc_firstName');
         JotForm.fieldsToPreserve.push(paymentId + '_cc_lastName');
